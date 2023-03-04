@@ -6,15 +6,12 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type Config interface {
 	Addr() string
-}
-
-type Generator interface {
-	Gen() string
 }
 
 type server struct {
@@ -22,29 +19,15 @@ type server struct {
 	srv       *http.Server
 }
 
-type str string
-
-const keyServerAddr str = "serverAddr"
-
-var log *logrus.Logger
-
-func init() {
-	log = logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-
-	log.SetFormatter(&logrus.TextFormatter{
-		DisableColors: false,
-		FullTimestamp: true,
-	})
-}
-
 func New(cfg Config) *server {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", getRoot)
 	mux.HandleFunc("/ping", getPing)
+	mux.HandleFunc("/public", getPublic)
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
-	log.Info("new server is created")
+	log.Info().Msg("new server is created")
 
 	return &server{
 		cancelCtx: cancelCtx,
@@ -62,9 +45,9 @@ func New(cfg Config) *server {
 func (s *server) Start() {
 	err := s.srv.ListenAndServe()
 	if errors.Is(err, http.ErrServerClosed) {
-		log.Info("server one closed\n")
+		log.Info().Msg("server one closed\n")
 	} else if err != nil {
-		log.Infof("error listening: %s\n", err)
+		log.Error().AnErr("err", err).Msg("error listening")
 	}
 	s.cancelCtx()
 }

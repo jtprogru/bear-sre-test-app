@@ -3,7 +3,8 @@ package config
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -11,23 +12,16 @@ type cfg struct {
 	addr            string
 	chanelBirthDate string
 	chatBirthDate   string
-	log             *logrus.Logger
 }
 
 func New() *cfg {
-	log := logrus.New()
-	log.SetLevel(logrus.DebugLevel)
-	log.SetFormatter(&logrus.TextFormatter{
-		DisableColors: false,
-		FullTimestamp: true,
-	})
-
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("$HOME/.testapp")
 	viper.AddConfigPath("/etc/testapp")
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatal("can't load config")
+		log.Fatal().Msg("can't load config")
 	}
 
 	port := viper.GetInt("prod.port")
@@ -37,20 +31,19 @@ func New() *cfg {
 		addr:            fmt.Sprintf(":%d", port),
 		chanelBirthDate: chanelBirthDate,
 		chatBirthDate:   chatBirthDate,
-		log:             log,
 	}
 }
 func (c *cfg) Addr() string {
-	c.log.Infof("get addr: %v", c.addr)
+	log.Info().Msg(fmt.Sprintf("get addr: %v", c.addr))
 	return c.addr
 }
 
 func (c *cfg) ChanelBD() string {
-	c.log.Infof("get chanelBirthDate: %v", c.chanelBirthDate)
+	log.Info().Msg(fmt.Sprintf("get chanelBirthDate: %v", c.chanelBirthDate))
 	return c.chanelBirthDate
 }
 
 func (c *cfg) ChatBD() string {
-	c.log.Infof("get chatBirthDate: %v", c.chatBirthDate)
+	log.Info().Msg(fmt.Sprintf("get chatBirthDate: %v", c.chatBirthDate))
 	return c.chatBirthDate
 }

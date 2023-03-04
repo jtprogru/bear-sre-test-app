@@ -25,7 +25,7 @@ run.cmd: cmd/app/main.go
 .PHONY: run.bin
 ## Run as binary
 run.bin: build.bin
-	source .env && ./$(BINARY_DIR)/$(BINARY_NAME)
+	source .env && ./$(BINARY_DIR)/$(BINARY_NAME) -debug
 
 .PHONY: run.dc
 ## Run in Docker
