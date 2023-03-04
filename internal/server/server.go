@@ -3,9 +3,10 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Config interface {
@@ -25,11 +26,26 @@ type str string
 
 const keyServerAddr str = "serverAddr"
 
+var log *logrus.Logger
+
+func init() {
+	log = logrus.New()
+	log.SetLevel(logrus.DebugLevel)
+
+	log.SetFormatter(&logrus.TextFormatter{
+		DisableColors: false,
+		FullTimestamp: true,
+	})
+}
+
 func New(cfg Config) *server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", getRoot)
 	mux.HandleFunc("/ping", getPing)
+
 	ctx, cancelCtx := context.WithCancel(context.Background())
+	log.Info("new server is created")
+
 	return &server{
 		cancelCtx: cancelCtx,
 		srv: &http.Server{
@@ -46,9 +62,9 @@ func New(cfg Config) *server {
 func (s *server) Start() {
 	err := s.srv.ListenAndServe()
 	if errors.Is(err, http.ErrServerClosed) {
-		fmt.Printf("server one closed\n")
+		log.Info("server one closed\n")
 	} else if err != nil {
-		fmt.Printf("error listening for server one: %s\n", err)
+		log.Infof("error listening: %s\n", err)
 	}
 	s.cancelCtx()
 }
