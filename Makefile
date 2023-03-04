@@ -96,10 +96,10 @@ emoji_map:
 #	GIN_MODE=release go test -v ./tests/
 #	docker stop $$TEST_CONTAINER_NAME
 
-#.PHONY: test.coverage
-### Run test coverage
-#test.coverage:
-#	go tool cover -func=cover.out
+.PHONY: test.coverage
+## Run test coverage
+test.coverage:
+	$(SYS_GO) tool cover -func=cover.out
 
 #.PHONY: swag
 ### Run swag
