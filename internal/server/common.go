@@ -33,5 +33,5 @@ func checkSecretFile() error {
 		return ErrSecretFileIsTooShort
 	}
 
-    return nil
+	return nil
 }
