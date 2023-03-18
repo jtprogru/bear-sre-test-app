@@ -1,5 +1,7 @@
 package server
 
+import "errors"
+
 type message struct {
 	server_addr string
 	remote_addr string
@@ -16,6 +18,19 @@ type msgPub struct {
 	Channel string
 }
 
+type msgSec struct {
+	Chat string
+	Size int64
+}
+
 const (
-	keyServerAddr str = "serverAddr"
+	keyServerAddr  str    = "serverAddr"
+	secretFilePath string = "/tmp/jtprogru.test"
+	secretFileSize int64  = 2048
+)
+
+var (
+	ErrSecretFileNotFound   = errors.New("secret file not found")
+	ErrSecretFileIsEmpty    = errors.New("secret file is empty")
+	ErrSecretFileIsTooShort = errors.New("secret file is too short")
 )

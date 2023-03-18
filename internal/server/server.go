@@ -25,6 +25,7 @@ func New(cfg Config) *server {
 	mux.HandleFunc("/", getRoot)
 	mux.HandleFunc("/ping", getPing)
 	mux.HandleFunc("/public", getPublic)
+	mux.HandleFunc("/secret", getSecret)
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	log.Info().Msg("new server is created")

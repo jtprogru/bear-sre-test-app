@@ -91,3 +91,29 @@ func getPublic(w http.ResponseWriter, r *http.Request) {
 		Int("size", n).
 		Msg("write bytes")
 }
+
+func getSecret(w http.ResponseWriter, r *http.Request) {
+	resp := prepareMsg(r)
+	out := `{"secret_chat":"https://t.me/+j7JspAH4gpxiMDVi"}`
+
+	resp.msg = string(out)
+
+	log.Info().
+		Str("server_addr", resp.server_addr).
+		Str("remote_addr", resp.remote_addr).
+		Str("user_agent", resp.user_agent).
+		Str("uri", resp.uri).
+		Msg("messagePub is parsed and marshaled")
+
+	n, err := io.WriteString(w, fmt.Sprintf("%s\n", resp.msg))
+	if err != nil {
+		log.Error().AnErr("err", err).Msg("io.WriteSting err")
+	}
+	log.Debug().
+		Str("server_addr", resp.server_addr).
+		Str("remote_addr", resp.remote_addr).
+		Str("user_agent", resp.user_agent).
+		Str("uri", resp.uri).
+		Int("size", n).
+		Msg("write bytes")
+}

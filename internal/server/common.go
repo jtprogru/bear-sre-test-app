@@ -1,6 +1,9 @@
 package server
 
-import "net/http"
+import (
+	"net/http"
+	"os"
+)
 
 func prepareMsg(r *http.Request) *message {
 	resp := &message{}
@@ -13,4 +16,22 @@ func prepareMsg(r *http.Request) *message {
 	resp.uri = r.RequestURI
 	return resp
 
+}
+
+func checkSecretFile() error {
+	f, err := os.Open(secretFilePath)
+	if err != nil {
+		return ErrSecretFileNotFound
+	}
+
+	fStat, err := f.Stat()
+	if err != nil {
+		return ErrSecretFileNotFound
+	}
+
+	if fStat.Size() < secretFileSize {
+		return ErrSecretFileIsTooShort
+	}
+
+    return nil
 }
