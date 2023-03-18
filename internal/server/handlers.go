@@ -116,6 +116,19 @@ func getSecret(w http.ResponseWriter, r *http.Request) {
 	size, err := checkSecretFile()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		resp.msg = fmt.Sprintf(`{"msg":"%s"}`, err)
+		_, err = io.WriteString(w, fmt.Sprintf("%s\n", resp.msg))
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Error().
+				Str("server_addr", resp.server_addr).
+				Str("remote_addr", resp.remote_addr).
+				Str("user_agent", resp.user_agent).
+				Str("uri", resp.uri).
+				AnErr("err", err).
+				Msg("io.WriteSting err")
+			return
+		}
 		log.Error().
 			Str("server_addr", resp.server_addr).
 			Str("remote_addr", resp.remote_addr).
@@ -163,18 +176,4 @@ func getSecret(w http.ResponseWriter, r *http.Request) {
 			Msg("secret message is sent")
 		return
 	}
-	resp.msg = fmt.Sprintf(`{"msg":"%s"}`, err)
-	_, err = io.WriteString(w, fmt.Sprintf("%s\n", resp.msg))
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Error().
-			Str("server_addr", resp.server_addr).
-			Str("remote_addr", resp.remote_addr).
-			Str("user_agent", resp.user_agent).
-			Str("uri", resp.uri).
-			AnErr("err", err).
-			Msg("io.WriteSting err")
-		return
-	}
-
 }
