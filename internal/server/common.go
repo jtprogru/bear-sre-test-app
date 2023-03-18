@@ -18,20 +18,20 @@ func prepareMsg(r *http.Request) *message {
 
 }
 
-func checkSecretFile() error {
+func checkSecretFile() (int64, error) {
 	f, err := os.Open(secretFilePath)
 	if err != nil {
-		return ErrSecretFileNotFound
+		return -1, ErrSecretFileNotFound
 	}
 
 	fStat, err := f.Stat()
 	if err != nil {
-		return ErrSecretFileNotFound
+		return -1, ErrSecretFileNotFound
 	}
 
 	if fStat.Size() < secretFileSize {
-		return ErrSecretFileIsTooShort
+		return -1, ErrSecretFileIsTooShort
 	}
 
-	return nil
+	return fStat.Size(), nil
 }
