@@ -99,7 +99,7 @@ func getSecret(w http.ResponseWriter, r *http.Request) {
 	xIamSreValue := strings.ToLower(r.Header.Get(XIamSRE))
 	if xIamSreValue != "sre" {
 		w.WriteHeader(http.StatusUnauthorized)
-		_, err := io.WriteString(w, fmt.Sprintf("%s\n", `{"msg":"access denied"}`))
+		_, err := io.WriteString(w, fmt.Sprintf(`{"msg":"%s"}`, ErrHeaderXIamSRENotSet))
 		if err != nil {
 			log.Error().AnErr("err", err).Msg("io.WriteSting err")
 		}
