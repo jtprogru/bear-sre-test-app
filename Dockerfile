@@ -20,7 +20,7 @@ COPY . .
 RUN go mod download && CGO_ENABLED=0 go build -o ./dist/app cmd/app/main.go
 
 # Start fresh from a smaller image
-FROM alpine:3.9
+FROM alpine:3.16.9
 RUN apk add ca-certificates
 ENV SRV_ADDR=9090
 COPY --from=build_base /tmp/app/dist/app /app/app
