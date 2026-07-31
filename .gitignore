@@ -8,10 +8,27 @@
 # Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Coverage output
 *.out
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
-*.txt
+# Build artifacts
 dist/
+bin/
+
+# Local environment — SRV_ADDR и прочее. В репозиторий не попадает,
+# образец лежит в .env.example.
+.env
+.env.*
+!.env.example
+
+# Локальный конфиг. Образец — config.example.yaml.
+config.yaml
+
+# Данные для /secret, генерируются `task testdata`
+testdata/
+
+# Editors / tooling
+.idea/
+.vscode/
+.serena/
+.DS_Store

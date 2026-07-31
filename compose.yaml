@@ -1,0 +1,20 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # Окружение перекрывает config.yaml, зашитый в образ.
+      TESTAPP_PROD_PORT: "8080"
+    volumes:
+      # Секретный файл для /secret. Читается только его размер.
+      - ./testdata/jtprogru.test:/tmp/jtprogru.test:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped

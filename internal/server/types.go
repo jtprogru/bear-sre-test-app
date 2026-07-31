@@ -2,37 +2,62 @@ package server
 
 import "errors"
 
-type message struct {
-	server_addr string
-	remote_addr string
-	user_agent  string
-	uri         string
-	msg         string
-}
-
-type str string
-
-type msgPub struct {
-	Discord string
-	Chat    string
-	Channel string
-}
-
-type msgSec struct {
-	Chat string
-	Size int64
-}
+// ctxKey — собственный тип для ключей контекста, чтобы исключить коллизии
+// с ключами других пакетов.
+type ctxKey string
 
 const (
-	keyServerAddr  str    = "serverAddr"
-	secretFilePath string = "/tmp/jtprogru.test"
-	secretFileSize int64  = 2048
-	XIamSRE        string = "X-IAM-SRE"
+	keyServerAddr ctxKey = "serverAddr"
+
+	// XIamSRE — заголовок доступа к /secret.
+	XIamSRE = "X-IAM-SRE"
+	// xIamSREValue — ожидаемое значение заголовка (сравнение регистронезависимо).
+	xIamSREValue = "sre"
 )
 
 var (
-	ErrSecretFileNotFound   = errors.New("secret file not found")
-	ErrSecretFileIsEmpty    = errors.New("secret file is empty")
-	ErrSecretFileIsTooShort = errors.New("secret file is too short")
-	ErrHeaderXIamSRENotSet  = errors.New("X-IAM-SRE header not set")
+	ErrSecretFileNotFound    = errors.New("secret file not found")
+	ErrSecretFileIsEmpty     = errors.New("secret file is empty")
+	ErrSecretFileIsTooShort  = errors.New("secret file is too short")
+	ErrHeaderXIamSRENotSet   = errors.New("X-IAM-SRE header not set")
+	ErrPublicNotConfigured   = errors.New("public links are not configured")
+	ErrUpstreamNotConfigured = errors.New("upstream is not configured")
+	ErrNotFound              = errors.New("not found")
+	ErrMethodNotAllowed      = errors.New("method not allowed")
 )
+
+// errorResponse — единый формат ошибки для всех ручек.
+type errorResponse struct {
+	Msg string `json:"msg"`
+}
+
+// msgResponse — простой текстовый ответ.
+type msgResponse struct {
+	Msg string `json:"msg"`
+}
+
+// publicResponse — тело ответа /public.
+type publicResponse struct {
+	Discord string `json:"discord"`
+	Chat    string `json:"chat"`
+	Channel string `json:"channel"`
+}
+
+// secretResponse — тело ответа /secret.
+type secretResponse struct {
+	Chat string `json:"chat"`
+	Size int64  `json:"size"`
+}
+
+// healthResponse — тело ответа /healthz и /readyz.
+type healthResponse struct {
+	Status string            `json:"status"`
+	Checks map[string]string `json:"checks,omitempty"`
+}
+
+// upstreamResponse — тело ответа /upstream.
+type upstreamResponse struct {
+	StatusCode int   `json:"status_code"`
+	Attempts   int   `json:"attempts"`
+	ElapsedMs  int64 `json:"elapsed_ms"`
+}

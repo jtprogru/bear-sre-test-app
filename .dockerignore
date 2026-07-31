@@ -1,0 +1,23 @@
+# Build context hygiene: без этого файла в контекст сборки уезжали .git,
+# .env и артефакты локальных прогонов.
+.git/
+.github/
+.serena/
+.idea/
+.vscode/
+.DS_Store
+
+.env
+.env.*
+!.env.example
+
+dist/
+bin/
+*.out
+*.test
+*.log
+
+conformance/
+k6/
+INSTRUCTOR.md
+CANDIDATE.md
