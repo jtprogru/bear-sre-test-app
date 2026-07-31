@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -41,6 +42,14 @@ type options struct {
 	secretFileSize int
 	// shutdownTimeout прокидывается в конфиг.
 	shutdownTimeout time.Duration
+	// upstream поднимает фиктивный внешний сервис и прописывает его адрес
+	// в конфиг. nil означает, что апстрим не настроен.
+	upstream http.HandlerFunc
+	// upstreamMaxAttempts и upstreamOpenFor настраивают ретраи и breaker.
+	upstreamMaxAttempts int
+	upstreamTimeout     time.Duration
+	upstreamThreshold   int
+	upstreamOpenFor     time.Duration
 }
 
 func freePort(t *testing.T) int {
@@ -87,6 +96,20 @@ func binaryPath(t *testing.T) string {
 	}
 }
 
+func orDuration(v, fallback time.Duration) time.Duration {
+	if v == 0 {
+		return fallback
+	}
+	return v
+}
+
+func orInt(v, fallback int) int {
+	if v == 0 {
+		return fallback
+	}
+	return v
+}
+
 func mustWd(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()
@@ -126,6 +149,27 @@ public:
 		shutdown = 10 * time.Second
 	}
 
+	upstreamCfg := ""
+	if opt.upstream != nil {
+		fake := httptest.NewServer(opt.upstream)
+		t.Cleanup(fake.Close)
+		upstreamCfg = fmt.Sprintf(`
+upstream:
+  url: %q
+  timeout: %s
+  maxAttempts: %d
+  backoffBase: 20ms
+  failureThreshold: %d
+  openFor: %s
+`,
+			fake.URL,
+			orDuration(opt.upstreamTimeout, 2*time.Second),
+			orInt(opt.upstreamMaxAttempts, 3),
+			orInt(opt.upstreamThreshold, 5),
+			orDuration(opt.upstreamOpenFor, 5*time.Second),
+		)
+	}
+
 	cfg := fmt.Sprintf(`prod:
   port: %d
 server:
@@ -138,7 +182,7 @@ secret:
   chat: "https://t.me/+conformance"
   filePath: %q
   minSize: 2048
-`, port, shutdown, public, secretFile)
+%s`, port, shutdown, public, secretFile, upstreamCfg)
 
 	if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(cfg), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
