@@ -8,8 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -244,12 +242,35 @@ func TestC8_SlowlorisConnectionIsDropped(t *testing.T) {
 func TestC9_NoFileDescriptorLeak(t *testing.T) {
 	a := start(t, options{secretFileSize: 4096})
 
-	before, ok := processOpenFDs(t, a)
+	baseline, ok := a.openFDs()
 	if !ok {
-		t.Skip("process_open_fds is not exported on this platform")
+		t.Skip("can't count file descriptors on this platform")
 	}
 
-	const requests = 3000
+	// Считаем пик во время нагрузки, а не остаток после неё. У os.File есть
+	// финализатор, поэтому GC постепенно закрывает утёкшие дескрипторы и
+	// картина «после» выглядит обманчиво спокойной. В проде это ровно то же
+	// самое: сервис живёт неделю и падает об EMFILE на пике трафика.
+	done := make(chan struct{})
+	peakCh := make(chan int, 1)
+	go func() {
+		peak := baseline
+		ticker := time.NewTicker(50 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				peakCh <- peak
+				return
+			case <-ticker.C:
+				if n, ok := a.openFDs(); ok && n > peak {
+					peak = n
+				}
+			}
+		}
+	}()
+
+	const requests = 6000
 	var wg sync.WaitGroup
 	for range 16 {
 		wg.Add(1)
@@ -257,7 +278,10 @@ func TestC9_NoFileDescriptorLeak(t *testing.T) {
 			defer wg.Done()
 			client := &http.Client{Timeout: 5 * time.Second}
 			for range requests / 16 {
-				req, _ := http.NewRequest(http.MethodGet, a.BaseURL+"/secret", nil)
+				req, err := http.NewRequest(http.MethodGet, a.BaseURL+"/secret", nil)
+				if err != nil {
+					continue
+				}
 				req.Header.Set("X-IAM-SRE", "sre")
 				resp, err := client.Do(req)
 				if err != nil {
@@ -269,17 +293,15 @@ func TestC9_NoFileDescriptorLeak(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+	close(done)
 
-	// Даём рантайму время закрыть keep-alive соединения.
-	time.Sleep(2 * time.Second)
+	peak := <-peakCh
+	t.Logf("open fds: %d baseline, %d peak under %d requests", baseline, peak, requests)
 
-	after, _ := processOpenFDs(t, a)
-	t.Logf("open fds: %.0f before, %.0f after %d requests", before, after, requests)
-
-	// Утечка по дескриптору на запрос дала бы рост на тысячи.
-	// Порог с запасом на пул соединений.
-	if after-before > 200 {
-		t.Fatalf("open fds grew from %.0f to %.0f after %d requests — descriptor leak", before, after, requests)
+	// Здоровому сервису хватает пула соединений: десятки дескрипторов.
+	// Утечка по одному на запрос уводит пик на сотни и тысячи.
+	if peak-baseline > 100 {
+		t.Fatalf("open fds peaked at %d against a %d baseline — descriptor leak on /secret", peak, baseline)
 	}
 }
 
@@ -305,11 +327,18 @@ func TestC10_GracefulShutdown(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	start := time.Now()
-	if !a.terminate() {
-		t.Fatalf("process did not exit within %s after SIGTERM — no graceful shutdown", stopTimeout)
+	exited, signalled := a.terminate()
+	if !exited {
+		t.Fatalf("process did not exit within %s after SIGTERM", stopTimeout)
 	}
-	elapsed := time.Since(start)
-	t.Logf("process exited %s after SIGTERM", elapsed)
+	t.Logf("process exited %s after SIGTERM", time.Since(start))
+
+	// Рантайм Go по умолчанию гасит процесс по SIGTERM. Если wait-статус
+	// говорит Signaled — сигнал никто не обработал, значит graceful
+	// shutdown отсутствует и соединения рвутся на выкате.
+	if signalled {
+		t.Fatal("process was killed by SIGTERM instead of shutting down on its own — no signal handling")
+	}
 
 	select {
 	case code := <-respCh:
@@ -324,21 +353,6 @@ func TestC10_GracefulShutdown(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 // helpers
 // ─────────────────────────────────────────────────────────────────────────────
-
-var openFDsRe = regexp.MustCompile(`(?m)^process_open_fds\s+([0-9.e+]+)`)
-
-func processOpenFDs(t *testing.T, a *app) (float64, bool) {
-	t.Helper()
-	m := openFDsRe.FindStringSubmatch(readAll(t, a.get("/metrics", nil)))
-	if len(m) != 2 {
-		return 0, false
-	}
-	v, err := strconv.ParseFloat(m[1], 64)
-	if err != nil {
-		return 0, false
-	}
-	return v, true
-}
 
 func readAll(t *testing.T, resp *http.Response) string {
 	t.Helper()

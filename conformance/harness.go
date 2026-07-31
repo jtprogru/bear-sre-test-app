@@ -3,7 +3,9 @@
 package conformance
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -11,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -266,18 +269,49 @@ func (a *app) do(method, path string, headers map[string]string) *http.Response 
 }
 
 // terminate шлёт SIGTERM и ждёт завершения процесса.
-// Возвращает false, если процесс не успел завершиться за stopTimeout.
-func (a *app) terminate() bool {
+//
+// Возвращает exited — успел ли процесс завершиться за stopTimeout, и
+// signalled — был ли он убит сигналом. Второе и есть признак отсутствия
+// graceful shutdown: рантайм Go по умолчанию гасит процесс по SIGTERM, и
+// тогда wait-статус показывает Signaled. Сервис, который сигнал обработал,
+// завершается сам с кодом 0.
+func (a *app) terminate() (exited, signalled bool) {
 	a.t.Helper()
 	if err := a.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		a.t.Fatalf("send SIGTERM: %v", err)
 	}
+
 	select {
-	case <-a.exited:
-		return true
+	case err := <-a.exited:
+		var ee *exec.ExitError
+		if errors.As(err, &ee) {
+			if ws, ok := ee.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
+				return true, true
+			}
+			a.t.Logf("process exited with %v", err)
+		}
+		return true, false
 	case <-time.After(stopTimeout):
-		return false
+		return false, false
 	}
+}
+
+// openFDs считает файловые дескрипторы процесса. Сознательно не опирается
+// на /metrics: ветка без метрик иначе просто пропускала бы проверку утечки.
+func (a *app) openFDs() (int, bool) {
+	pid := a.cmd.Process.Pid
+
+	// Linux — самый дешёвый и точный путь.
+	if entries, err := os.ReadDir(fmt.Sprintf("/proc/%d/fd", pid)); err == nil {
+		return len(entries), true
+	}
+
+	// macOS и прочие — через lsof.
+	out, err := exec.Command("lsof", "-p", strconv.Itoa(pid)).Output()
+	if err != nil {
+		return 0, false
+	}
+	return bytes.Count(out, []byte{'\n'}), true
 }
 
 // kill гасит процесс жёстко — страховка на случай, если тест упал раньше.

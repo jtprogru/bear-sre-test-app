@@ -69,6 +69,15 @@ tasks:
     env:
       CONFORMANCE_BINARY: "./{{.BINARY_DIR}}/{{.BINARY_NAME}}"
 
+  verify:
+    desc: 'Прогнать conformance против чужой сборки: task verify -- /path/to/binary'
+    cmd: go test -v -tags conformance -count=1 -timeout 15m ./conformance/...
+    env:
+      CONFORMANCE_BINARY: "{{.CLI_ARGS}}"
+    preconditions:
+      - sh: test -n "{{.CLI_ARGS}}"
+        msg: "укажите путь к бинарю: task verify -- ./dist/candidate"
+
   lint:
     desc: Запустить golangci-lint
     cmd: golangci-lint run --timeout 5m
