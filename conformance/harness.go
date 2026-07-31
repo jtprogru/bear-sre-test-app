@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -97,6 +98,30 @@ func binaryPath(t *testing.T) string {
 		}
 		dir = parent
 	}
+}
+
+// cleanEnv собирает окружение для сервиса под тестом.
+//
+// Из наследуемого окружения выбрасывается всё, чем приложение настраивается:
+// SRV_ADDR и TESTAPP_*. Иначе экспортированная в шелле переменная (или .env,
+// подхваченный сборочной системой) перекроет сгенерированный конфиг, сервис
+// сядет на чужой порт, и набор покажет провалы, которых нет.
+//
+// HOME переопределяется, чтобы сервис не подхватил ~/.testapp/config.yaml
+// того, кто запускает проверку.
+func cleanEnv(dir string) []string {
+	out := make([]string, 0, len(os.Environ())+1)
+	for _, kv := range os.Environ() {
+		key, _, ok := strings.Cut(kv, "=")
+		if !ok {
+			continue
+		}
+		if key == "HOME" || key == "SRV_ADDR" || strings.HasPrefix(key, "TESTAPP_") {
+			continue
+		}
+		out = append(out, kv)
+	}
+	return append(out, "HOME="+dir)
 }
 
 func orDuration(v, fallback time.Duration) time.Duration {
@@ -193,9 +218,7 @@ secret:
 
 	cmd := exec.Command(bin)
 	cmd.Dir = dir
-	// HOME переопределяем, чтобы сервис не подхватил ~/.testapp/config.yaml
-	// разработчика и не выдал ложный результат.
-	cmd.Env = append(os.Environ(), "HOME="+dir)
+	cmd.Env = cleanEnv(dir)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	// Своя группа процессов: если сервис форкается, погасим всё дерево.

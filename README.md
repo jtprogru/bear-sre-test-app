@@ -8,7 +8,7 @@
 
 ```shell
 cp config.example.yaml config.yaml
-task run
+make run
 ```
 
 Конфиг ищется в `./config.yaml`, затем в `$HOME/.testapp/config.yaml`, затем в `/etc/testapp/config.yaml`. Любое значение перекрывается переменной окружения с префиксом `TESTAPP_`: например `TESTAPP_PROD_PORT=9090`. Отдельно поддерживается `SRV_ADDR` — историческая переменная из `.env`, задаёт только порт.
@@ -16,11 +16,11 @@ task run
 Через Docker:
 
 ```shell
-task testdata   # создаёт /tmp-файл для /secret
-task up
+make testdata   # создаёт файл для /secret
+make up
 ```
 
-`task --list` покажет остальные цели.
+`make help` покажет остальные цели.
 
 ## Эндпоинты
 
@@ -40,10 +40,10 @@ task up
 ## Проверки
 
 ```shell
-task check              # то же, что гоняет CI: fmt, vet, lint, gosec, govulncheck, тесты
-task test               # unit-тесты под -race
-task test:conformance   # чёрный ящик поверх собранного бинаря
-task load               # нагрузочный прогон k6, сервис должен быть запущен
+make check              # то же, что гоняет CI: fmt, vet, lint, gosec, govulncheck, тесты
+make test               # unit-тесты под -race
+make test.conformance   # чёрный ящик поверх собранного бинаря
+make load               # нагрузочный прогон k6, сервис должен быть запущен
 ```
 
 Conformance-набор в `conformance/` разговаривает с сервисом только по HTTP и ничего не знает о его внутреннем устройстве. Он проверяет контракт ручек, поведение под Slowloris, отсутствие утечки файловых дескрипторов и корректность graceful shutdown.
