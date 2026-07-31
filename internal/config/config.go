@@ -1,18 +1,10 @@
-// Package config загружает настройки приложения из YAML-файла и окружения.
-//
-// Приоритет источников (по убыванию):
-//  1. переменные окружения с префиксом TESTAPP_ (например TESTAPP_PROD_PORT);
-//  2. legacy-переменная SRV_ADDR — только порт, для совместимости с .env;
-//  3. значения из config.yaml;
-//  4. дефолты, заданные в setDefaults.
+// Package config загружает настройки приложения из YAML-файла.
 package config
 
 import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -93,29 +85,11 @@ func New() (*Config, error) {
 		v.AddConfigPath(p)
 	}
 
-	v.SetEnvPrefix("TESTAPP")
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
-
 	if err := v.ReadInConfig(); err != nil {
-		var notFound viper.ConfigFileNotFoundError
-		if !errors.As(err, &notFound) {
-			return nil, fmt.Errorf("parse config: %w", err)
-		}
-		// Файла нет — это допустимо ровно в одном случае: порт задан через
-		// окружение. Иначе честно говорим, где именно искали.
-		if !portInEnv() {
-			return nil, fmt.Errorf("%w in %s", ErrConfigNotFound, strings.Join(SearchPaths(), ", "))
-		}
+		return nil, ErrConfigNotFound
 	}
 
 	port := v.GetInt("prod.port")
-	if legacy, ok := legacyPort(); ok {
-		port = legacy
-	}
-	if port <= 0 || port > 65535 {
-		return nil, fmt.Errorf("invalid prod.port: %d (want 1..65535)", port)
-	}
 
 	return &Config{
 		Addr:            fmt.Sprintf(":%d", port),
@@ -138,26 +112,4 @@ func New() (*Config, error) {
 			MinSize:  v.GetInt64("secret.minSize"),
 		},
 	}, nil
-}
-
-// portInEnv сообщает, задан ли порт через окружение.
-func portInEnv() bool {
-	if _, ok := legacyPort(); ok {
-		return true
-	}
-	return strings.TrimSpace(os.Getenv("TESTAPP_PROD_PORT")) != ""
-}
-
-// legacyPort читает SRV_ADDR из окружения. Историческая переменная из .env:
-// раньше она объявлялась в трёх местах, но кодом не использовалась нигде.
-func legacyPort() (int, bool) {
-	raw := strings.TrimSpace(os.Getenv("SRV_ADDR"))
-	if raw == "" {
-		return 0, false
-	}
-	n, err := strconv.Atoi(strings.TrimPrefix(raw, ":"))
-	if err != nil {
-		return 0, false
-	}
-	return n, true
 }

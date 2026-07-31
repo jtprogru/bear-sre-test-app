@@ -32,7 +32,6 @@ task up
 | GET | `/secret` | приватная ссылка; требует заголовок `X-IAM-SRE: SRE` и наличие файла из `secret.filePath` размером не меньше `secret.minSize` |
 | GET | `/healthz` | liveness: процесс жив |
 | GET | `/readyz` | readiness: сервис готов принимать трафик |
-| GET | `/metrics` | метрики в формате Prometheus |
 
 Все ответы — JSON. Неизвестный путь отдаёт `404`, неверный метод — `405` с заголовком `Allow`.
 

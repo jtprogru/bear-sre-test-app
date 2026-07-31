@@ -10,12 +10,6 @@
 prod:
   port: 8080
 
-server:
-  shutdownTimeout: 10s
-  readTimeout: 10s
-  writeTimeout: 10s
-  idleTimeout: 60s
-
 tg:
   chanelBirthDate: "2021-01-01"
   chatBirthDate: "2021-06-01"

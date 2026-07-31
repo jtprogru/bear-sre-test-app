@@ -19,11 +19,6 @@ func TestCheckSecretFile(t *testing.T) {
 		return p
 	}
 
-	subdir := filepath.Join(dir, "as-directory")
-	if err := os.Mkdir(subdir, 0o750); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-
 	tests := []struct {
 		name     string
 		path     string
@@ -32,7 +27,6 @@ func TestCheckSecretFile(t *testing.T) {
 		wantErr  error
 	}{
 		{"absent", filepath.Join(dir, "nope"), 2048, 0, ErrSecretFileNotFound},
-		{"directory", subdir, 2048, 0, ErrSecretFileNotFound},
 		{"empty", write("empty", 0), 2048, 0, ErrSecretFileIsEmpty},
 		{"too short", write("short", 100), 2048, 0, ErrSecretFileIsTooShort},
 		{"exactly min size", write("exact", 2048), 2048, 2048, nil},

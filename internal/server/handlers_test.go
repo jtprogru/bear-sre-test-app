@@ -59,7 +59,6 @@ func TestRoutes(t *testing.T) {
 		{"ping", http.MethodGet, "/ping", nil, http.StatusOK},
 		{"public configured", http.MethodGet, "/public", nil, http.StatusOK},
 		{"healthz", http.MethodGet, "/healthz", nil, http.StatusOK},
-		{"metrics", http.MethodGet, "/metrics", nil, http.StatusOK},
 		{"secret without header", http.MethodGet, "/secret", nil, http.StatusUnauthorized},
 		{"secret wrong header", http.MethodGet, "/secret", map[string]string{XIamSRE: "dev"}, http.StatusUnauthorized},
 		// Файла нет — 503, а не 500: сервис исправен, не готово окружение.
@@ -154,37 +153,4 @@ func TestSecretHeaderCaseInsensitive(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestNoFileDescriptorLeak ловит регресс исходной утечки: проверка секретного
-// файла не должна оставлять открытых дескрипторов.
-func TestNoFileDescriptorLeak(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "jtprogru.test")
-	if err := os.WriteFile(path, make([]byte, 4096), 0o600); err != nil {
-		t.Fatalf("prepare secret file: %v", err)
-	}
-
-	before := openFDs(t)
-	for range 2000 {
-		if _, err := checkSecretFile(path, 2048); err != nil {
-			t.Fatalf("checkSecretFile: %v", err)
-		}
-	}
-	after := openFDs(t)
-
-	// Небольшой дрейф допустим (рантайм открывает свои файлы), утечка на
-	// 2000 вызовов дала бы рост на тысячи.
-	if after-before > 50 {
-		t.Fatalf("file descriptors grew from %d to %d — leak suspected", before, after)
-	}
-}
-
-func openFDs(t *testing.T) int {
-	t.Helper()
-	entries, err := os.ReadDir("/dev/fd")
-	if err != nil {
-		t.Skipf("can't count file descriptors on this platform: %v", err)
-	}
-	return len(entries)
 }

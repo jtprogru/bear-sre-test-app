@@ -96,15 +96,10 @@ func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 }
 
 // handleReadyz — readiness: готов ли сервис принимать трафик.
-// В отличие от liveness, учитывает конфигурацию и снимается при shutdown.
 func (s *Server) handleReadyz(w http.ResponseWriter, _ *http.Request) {
 	checks := map[string]string{}
 	status := http.StatusOK
 
-	if !s.ready.Load() {
-		checks["shutdown"] = "in progress"
-		status = http.StatusServiceUnavailable
-	}
 	if !s.cfg.Public.Configured() {
 		checks["public"] = ErrPublicNotConfigured.Error()
 		status = http.StatusServiceUnavailable
