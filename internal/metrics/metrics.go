@@ -32,30 +32,4 @@ var (
 		Name: "http_requests_in_flight",
 		Help: "Number of HTTP requests currently being served.",
 	})
-
-	// UpstreamRequestsTotal — исходы обращений к внешнему сервису.
-	// result: success | failure | circuit_open.
-	UpstreamRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "upstream_requests_total",
-		Help: "Total number of upstream calls by outcome.",
-	}, []string{"result"})
-
-	// UpstreamAttemptsTotal считает попытки, включая ретраи.
-	UpstreamAttemptsTotal = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "upstream_attempts_total",
-		Help: "Total number of upstream HTTP attempts including retries.",
-	})
-
-	// UpstreamDuration — длительность всего вызова апстрима вместе с ретраями.
-	UpstreamDuration = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name:    "upstream_request_duration_seconds",
-		Help:    "Upstream call latency including retries.",
-		Buckets: prometheus.DefBuckets,
-	})
-
-	// CircuitBreakerState: 0 — closed, 1 — half-open, 2 — open.
-	CircuitBreakerState = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "upstream_circuit_breaker_state",
-		Help: "Circuit breaker state: 0=closed, 1=half-open, 2=open.",
-	})
 )

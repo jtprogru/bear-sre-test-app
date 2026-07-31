@@ -32,7 +32,6 @@ task up
 | GET | `/secret` | приватная ссылка; требует заголовок `X-IAM-SRE: SRE` и наличие файла из `secret.filePath` размером не меньше `secret.minSize` |
 | GET | `/healthz` | liveness: процесс жив |
 | GET | `/readyz` | readiness: сервис готов принимать трафик |
-| GET | `/upstream` | вызов внешнего сервиса; `503`, если `upstream.url` пуст |
 | GET | `/metrics` | метрики в формате Prometheus |
 
 Все ответы — JSON. Неизвестный путь отдаёт `404`, неверный метод — `405` с заголовком `Allow`.
@@ -42,11 +41,8 @@ task up
 ```shell
 task check              # то же, что гоняет CI: fmt, vet, lint, gosec, govulncheck, тесты
 task test               # unit-тесты под -race
-task test:conformance   # чёрный ящик поверх собранного бинаря
 task load               # нагрузочный прогон k6, сервис должен быть запущен
 ```
-
-Conformance-набор в `conformance/` разговаривает с сервисом только по HTTP и ничего не знает о его внутреннем устройстве. Он проверяет контракт ручек, поведение под Slowloris, отсутствие утечки файловых дескрипторов и корректность graceful shutdown.
 
 ## Задания
 

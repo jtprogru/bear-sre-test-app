@@ -30,12 +30,3 @@ secret:
   chat: "https://t.me/+j7JspAH4gpxiMDVi"
   filePath: "/tmp/jtprogru.test"
   minSize: 2048
-
-# Пустой url выключает ручку /upstream (отдаёт 503).
-upstream:
-  url: ""
-  timeout: 2s
-  maxAttempts: 3
-  backoffBase: 50ms
-  failureThreshold: 5
-  openFor: 5s

@@ -12,14 +12,12 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/jtprogru/bear-sre-test-app/internal/config"
-	"github.com/jtprogru/bear-sre-test-app/internal/upstream"
 )
 
 // Server — HTTP-сервер приложения.
 type Server struct {
-	cfg      *config.Config
-	srv      *http.Server
-	upstream *upstream.Client
+	cfg *config.Config
+	srv *http.Server
 
 	// ready снимается перед началом остановки, чтобы балансировщик успел
 	// увести трафик до того, как сервер перестанет принимать соединения.
@@ -31,17 +29,6 @@ type Server struct {
 func New(cfg *config.Config) *Server {
 	s := &Server{cfg: cfg}
 	s.ready.Store(true)
-
-	if cfg.Upstream.Enabled() {
-		s.upstream = upstream.New(upstream.Options{
-			URL:              cfg.Upstream.URL,
-			Timeout:          cfg.Upstream.Timeout,
-			MaxAttempts:      cfg.Upstream.MaxAttempts,
-			BackoffBase:      cfg.Upstream.BackoffBase,
-			FailureThreshold: cfg.Upstream.FailureThreshold,
-			OpenFor:          cfg.Upstream.OpenFor,
-		})
-	}
 
 	// Базовый контекст фиксируем один раз. Раньше здесь переприсваивалась
 	// захваченная переменная — гонка данных при нескольких листенерах.
@@ -87,7 +74,6 @@ func (s *Server) routes() http.Handler {
 	get("/secret", http.HandlerFunc(s.handleSecret))
 	get("/healthz", http.HandlerFunc(s.handleHealthz))
 	get("/readyz", http.HandlerFunc(s.handleReadyz))
-	get("/upstream", http.HandlerFunc(s.handleUpstream))
 	get("/metrics", promhttp.Handler())
 	mux.HandleFunc("/", s.handleNotFound)
 

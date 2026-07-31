@@ -2,13 +2,10 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/rs/zerolog/log"
-
-	"github.com/jtprogru/bear-sre-test-app/internal/upstream"
 )
 
 // writeJSON — единственная точка записи ответа. Раньше JSON собирался
@@ -112,44 +109,12 @@ func (s *Server) handleReadyz(w http.ResponseWriter, _ *http.Request) {
 		checks["public"] = ErrPublicNotConfigured.Error()
 		status = http.StatusServiceUnavailable
 	}
-	if s.upstream != nil && s.upstream.State() == upstream.StateOpen {
-		checks["upstream"] = upstream.ErrCircuitOpen.Error()
-		status = http.StatusServiceUnavailable
-	}
 
 	body := healthResponse{Status: "ready", Checks: checks}
 	if status != http.StatusOK {
 		body.Status = "not ready"
 	}
 	writeJSON(w, status, body)
-}
-
-// handleUpstream дёргает внешний сервис через клиента с бюджетом времени,
-// ретраями и circuit breaker'ом.
-func (s *Server) handleUpstream(w http.ResponseWriter, r *http.Request) {
-	if s.upstream == nil {
-		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Msg: ErrUpstreamNotConfigured.Error()})
-		return
-	}
-
-	// Контекст запроса протаскивается дальше: если клиент отвалился, нет
-	// смысла продолжать ретраить в апстрим.
-	res, err := s.upstream.Do(r.Context())
-	switch {
-	case errors.Is(err, upstream.ErrCircuitOpen):
-		w.Header().Set("Retry-After", "5")
-		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Msg: err.Error()})
-		return
-	case err != nil:
-		writeJSON(w, http.StatusBadGateway, errorResponse{Msg: err.Error()})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, upstreamResponse{
-		StatusCode: res.StatusCode,
-		Attempts:   res.Attempts,
-		ElapsedMs:  res.ElapsedMs,
-	})
 }
 
 // hasSREHeader проверяет заголовок доступа. Сравнение регистронезависимое,

@@ -62,13 +62,6 @@ tasks:
     deps: [test]
     cmd: go tool cover -func=cover.out
 
-  test:conformance:
-    desc: Прогнать conformance-набор против собранного бинаря
-    deps: [build]
-    cmd: go test -v -tags conformance -count=1 ./conformance/...
-    env:
-      CONFORMANCE_BINARY: "./{{.BINARY_DIR}}/{{.BINARY_NAME}}"
-
   lint:
     desc: Запустить golangci-lint
     cmd: golangci-lint run --timeout 5m

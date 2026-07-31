@@ -56,19 +56,6 @@ type SecretConfig struct {
 	MinSize  int64
 }
 
-// UpstreamConfig — параметры обращения к внешнему сервису.
-type UpstreamConfig struct {
-	URL              string
-	Timeout          time.Duration
-	MaxAttempts      int
-	BackoffBase      time.Duration
-	FailureThreshold int
-	OpenFor          time.Duration
-}
-
-// Enabled сообщает, настроен ли апстрим. Если нет — ручка /upstream отдаёт 503.
-func (u UpstreamConfig) Enabled() bool { return u.URL != "" }
-
 // Config — итоговая конфигурация приложения.
 type Config struct {
 	Addr            string
@@ -80,9 +67,8 @@ type Config struct {
 	ChannelBirthDate string
 	ChatBirthDate    string
 
-	Public   PublicLinks
-	Secret   SecretConfig
-	Upstream UpstreamConfig
+	Public PublicLinks
+	Secret SecretConfig
 }
 
 func setDefaults(v *viper.Viper) {
@@ -93,11 +79,6 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.idleTimeout", 60*time.Second)
 	v.SetDefault("secret.filePath", "/tmp/jtprogru.test")
 	v.SetDefault("secret.minSize", 2048)
-	v.SetDefault("upstream.timeout", 2*time.Second)
-	v.SetDefault("upstream.maxAttempts", 3)
-	v.SetDefault("upstream.backoffBase", 50*time.Millisecond)
-	v.SetDefault("upstream.failureThreshold", 5)
-	v.SetDefault("upstream.openFor", 5*time.Second)
 }
 
 // New читает конфигурацию. Ошибку возвращает, а не гасит процесс: решение о
@@ -155,14 +136,6 @@ func New() (*Config, error) {
 			Chat:     v.GetString("secret.chat"),
 			FilePath: v.GetString("secret.filePath"),
 			MinSize:  v.GetInt64("secret.minSize"),
-		},
-		Upstream: UpstreamConfig{
-			URL:              v.GetString("upstream.url"),
-			Timeout:          v.GetDuration("upstream.timeout"),
-			MaxAttempts:      v.GetInt("upstream.maxAttempts"),
-			BackoffBase:      v.GetDuration("upstream.backoffBase"),
-			FailureThreshold: v.GetInt("upstream.failureThreshold"),
-			OpenFor:          v.GetDuration("upstream.openFor"),
 		},
 	}, nil
 }

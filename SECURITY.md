@@ -30,8 +30,7 @@ Security репозитория или напишите на <jtprogru@gmail.com
 - `govulncheck` — известные уязвимости в зависимостях и stdlib;
 - `gosec` — статический анализ безопасности;
 - `go test -race`;
-- `hadolint` — линт Dockerfile;
-- conformance-набор поверх собранного контейнера.
+- `hadolint` — линт Dockerfile.
 
 Обновления зависимостей приезжают через Dependabot (gomod, docker,
 github-actions) еженедельно.

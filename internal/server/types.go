@@ -16,14 +16,13 @@ const (
 )
 
 var (
-	ErrSecretFileNotFound    = errors.New("secret file not found")
-	ErrSecretFileIsEmpty     = errors.New("secret file is empty")
-	ErrSecretFileIsTooShort  = errors.New("secret file is too short")
-	ErrHeaderXIamSRENotSet   = errors.New("X-IAM-SRE header not set")
-	ErrPublicNotConfigured   = errors.New("public links are not configured")
-	ErrUpstreamNotConfigured = errors.New("upstream is not configured")
-	ErrNotFound              = errors.New("not found")
-	ErrMethodNotAllowed      = errors.New("method not allowed")
+	ErrSecretFileNotFound   = errors.New("secret file not found")
+	ErrSecretFileIsEmpty    = errors.New("secret file is empty")
+	ErrSecretFileIsTooShort = errors.New("secret file is too short")
+	ErrHeaderXIamSRENotSet  = errors.New("X-IAM-SRE header not set")
+	ErrPublicNotConfigured  = errors.New("public links are not configured")
+	ErrNotFound             = errors.New("not found")
+	ErrMethodNotAllowed     = errors.New("method not allowed")
 )
 
 // errorResponse — единый формат ошибки для всех ручек.
@@ -53,11 +52,4 @@ type secretResponse struct {
 type healthResponse struct {
 	Status string            `json:"status"`
 	Checks map[string]string `json:"checks,omitempty"`
-}
-
-// upstreamResponse — тело ответа /upstream.
-type upstreamResponse struct {
-	StatusCode int   `json:"status_code"`
-	Attempts   int   `json:"attempts"`
-	ElapsedMs  int64 `json:"elapsed_ms"`
 }

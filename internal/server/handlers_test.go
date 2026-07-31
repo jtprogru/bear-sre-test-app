@@ -64,7 +64,6 @@ func TestRoutes(t *testing.T) {
 		{"secret wrong header", http.MethodGet, "/secret", map[string]string{XIamSRE: "dev"}, http.StatusUnauthorized},
 		// Файла нет — 503, а не 500: сервис исправен, не готово окружение.
 		{"secret no file", http.MethodGet, "/secret", map[string]string{XIamSRE: "SRE"}, http.StatusServiceUnavailable},
-		{"upstream disabled", http.MethodGet, "/upstream", nil, http.StatusServiceUnavailable},
 		// Раньше catch-all на "/" отдавал 200 на любой путь.
 		{"unknown path", http.MethodGet, "/helth", nil, http.StatusNotFound},
 		{"unknown nested path", http.MethodGet, "/a/b/c", nil, http.StatusNotFound},
