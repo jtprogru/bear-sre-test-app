@@ -2,118 +2,84 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
-	"strings"
 
 	"github.com/rs/zerolog/log"
 )
 
-// writeJSON — единственная точка записи ответа. Раньше JSON собирался
-// через fmt.Sprintf с подстановкой текста ошибки: любая кавычка внутри
-// ошибки ломала тело ответа. Плюс здесь же выставляется Content-Type,
-// которого не было ни в одной ручке.
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	body, err := json.Marshal(payload)
-	if err != nil {
-		// Маршалинг статических структур упасть не может, но если это
-		// произошло — отдаём валидный JSON, а не полуготовый ответ.
-		log.Error().Err(err).Msg("can't marshal response payload")
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"msg":"internal error"}`))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	if _, err := w.Write(append(body, '\n')); err != nil {
-		log.Error().Err(err).Msg("can't write response body")
-	}
-}
-
 func (s *Server) handleRoot(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, msgResponse{Msg: "This is home page"})
+	msg := `{"msg":"This is home page"}`
+
+	if _, err := io.WriteString(w, fmt.Sprintf("%s\n", msg)); err != nil {
+		log.Error().AnErr("err", err).Msg("io.WriteString err")
+	}
 }
 
 func (s *Server) handlePing(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, msgResponse{Msg: "pong"})
+	msg := `{"msg":"pong"}`
+
+	if _, err := io.WriteString(w, fmt.Sprintf("%s\n", msg)); err != nil {
+		log.Error().AnErr("err", err).Msg("io.WriteString err")
+	}
 }
 
-// handleNotFound отвечает на всё, что не подошло ни одному маршруту.
-// Прежний catch-all на "/" отдавал 200 и домашнюю страницу на любой путь,
-// из-за чего опечатка в адресе выглядела как существующая ручка.
-func (s *Server) handleNotFound(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusNotFound, errorResponse{Msg: ErrNotFound.Error()})
-}
-
-// methodNotAllowed отвечает 405 и обязательным по RFC 9110 заголовком Allow:
-// без него клиент не знает, каким методом ручку всё-таки звать.
-func methodNotAllowed(allowed ...string) http.Handler {
-	allow := strings.Join(allowed, ", ")
-	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Allow", allow)
-		writeJSON(w, http.StatusMethodNotAllowed, errorResponse{Msg: ErrMethodNotAllowed.Error()})
-	})
-}
-
-// handlePublic отдаёт публичные ссылки. Если конфиг неполон — 503:
-// это и есть обещанная README проверка «правильно выставленного параметра».
 func (s *Server) handlePublic(w http.ResponseWriter, _ *http.Request) {
 	if !s.cfg.Public.Configured() {
-		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Msg: ErrPublicNotConfigured.Error()})
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, err := io.WriteString(w, fmt.Sprintf(`{"msg":"%s"}`, ErrPublicNotConfigured))
+		if err != nil {
+			log.Error().AnErr("err", err).Msg("io.WriteString err")
+		}
 		return
 	}
 
-	writeJSON(w, http.StatusOK, publicResponse{
+	out, err := json.Marshal(publicResponse{
 		Discord: s.cfg.Public.Discord,
 		Chat:    s.cfg.Public.Chat,
 		Channel: s.cfg.Public.Channel,
 	})
+	if err != nil {
+		log.Error().AnErr("err", err).Msg("can't marshal public links")
+	}
+
+	if _, err := io.WriteString(w, fmt.Sprintf("%s\n", out)); err != nil {
+		log.Error().AnErr("err", err).Msg("io.WriteString err")
+	}
 }
 
 func (s *Server) handleSecret(w http.ResponseWriter, r *http.Request) {
 	if !hasSREHeader(r) {
-		writeJSON(w, http.StatusUnauthorized, errorResponse{Msg: ErrHeaderXIamSRENotSet.Error()})
+		w.WriteHeader(http.StatusUnauthorized)
+		_, err := io.WriteString(w, fmt.Sprintf(`{"msg":"%s"}`, ErrHeaderXIamSRENotSet))
+		if err != nil {
+			log.Error().AnErr("err", err).Msg("io.WriteString err")
+		}
 		return
 	}
 
 	size, err := checkSecretFile(s.cfg.Secret.FilePath, s.cfg.Secret.MinSize)
 	if err != nil {
-		// Отсутствие файла — это состояние окружения, а не поломка сервиса,
-		// поэтому 503, а не 500: по 5xx-семантике это «временно недоступно».
-		writeJSON(w, http.StatusServiceUnavailable, errorResponse{Msg: err.Error()})
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, err = io.WriteString(w, fmt.Sprintf(`{"msg":"%s"}`, err))
+		if err != nil {
+			log.Error().AnErr("err", err).Msg("io.WriteString err")
+		}
 		return
 	}
 
-	writeJSON(w, http.StatusOK, secretResponse{Chat: s.cfg.Secret.Chat, Size: size})
-}
-
-// handleHealthz — liveness: процесс жив и способен отвечать.
-// Здесь намеренно нет проверок зависимостей: иначе падение апстрима приведёт
-// к перезапуску здорового пода.
-func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, healthResponse{Status: "ok"})
-}
-
-// handleReadyz — readiness: готов ли сервис принимать трафик.
-func (s *Server) handleReadyz(w http.ResponseWriter, _ *http.Request) {
-	checks := map[string]string{}
-	status := http.StatusOK
-
-	if !s.cfg.Public.Configured() {
-		checks["public"] = ErrPublicNotConfigured.Error()
-		status = http.StatusServiceUnavailable
+	out, err := json.Marshal(secretResponse{Chat: s.cfg.Secret.Chat, Size: size})
+	if err != nil {
+		log.Error().AnErr("err", err).Msg("can't marshal secret response")
 	}
 
-	body := healthResponse{Status: "ready", Checks: checks}
-	if status != http.StatusOK {
-		body.Status = "not ready"
+	if _, err := io.WriteString(w, fmt.Sprintf("%s\n", out)); err != nil {
+		log.Error().AnErr("err", err).Msg("io.WriteString err")
 	}
-	writeJSON(w, status, body)
 }
 
-// hasSREHeader проверяет заголовок доступа. Сравнение регистронезависимое,
-// как и было исторически: значение публичное, скрывать нечего.
+// hasSREHeader проверяет заголовок доступа. Сравнение регистронезависимое.
 func hasSREHeader(r *http.Request) bool {
 	return equalFold(r.Header.Get(XIamSRE), xIamSREValue)
 }

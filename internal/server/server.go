@@ -41,18 +41,10 @@ func (s *Server) Handler() http.Handler { return s.srv.Handler }
 func (s *Server) routes() http.Handler {
 	mux := http.NewServeMux()
 
-	get := func(path string, h http.Handler) {
-		mux.Handle("GET "+path, h)
-		mux.Handle(path, methodNotAllowed(http.MethodGet))
-	}
-
-	get("/{$}", http.HandlerFunc(s.handleRoot))
-	get("/ping", http.HandlerFunc(s.handlePing))
-	get("/public", http.HandlerFunc(s.handlePublic))
-	get("/secret", http.HandlerFunc(s.handleSecret))
-	get("/healthz", http.HandlerFunc(s.handleHealthz))
-	get("/readyz", http.HandlerFunc(s.handleReadyz))
-	mux.HandleFunc("/", s.handleNotFound)
+	mux.HandleFunc("/", s.handleRoot)
+	mux.HandleFunc("/ping", s.handlePing)
+	mux.HandleFunc("/public", s.handlePublic)
+	mux.HandleFunc("/secret", s.handleSecret)
 
 	return withLogging(mux)
 }
