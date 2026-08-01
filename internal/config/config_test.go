@@ -35,6 +35,19 @@ func TestMissingConfig(t *testing.T) {
 	}
 }
 
+func TestPortFromFile(t *testing.T) {
+	dir := chdir(t)
+	writeConfig(t, dir, "prod:\n  port: 9091\n")
+
+	cfg, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	if cfg.Addr != ":9091" {
+		t.Fatalf("addr = %q, want :9091", cfg.Addr)
+	}
+}
+
 func TestPublicConfigured(t *testing.T) {
 	tests := []struct {
 		name  string
