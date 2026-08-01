@@ -13,7 +13,7 @@ COPY . .
 # а для рантайма они не нужны.
 RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /out/app ./cmd/app
 
-FROM alpine:3.23
+FROM alpine:3.24
 LABEL authors="Mikhail Savin <jtprogru@gmail.com>"
 LABEL org.opencontainers.image.source="https://github.com/jtprogru/bear-sre-test-app"
 
