@@ -68,7 +68,6 @@ func (s *Server) handlePublic(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, publicResponse{
-		Discord: s.cfg.Public.Discord,
 		Chat:    s.cfg.Public.Chat,
 		Channel: s.cfg.Public.Channel,
 	})

@@ -130,10 +130,9 @@ func TestPublicConfigured(t *testing.T) {
 		links PublicLinks
 		want  bool
 	}{
-		{"all set", PublicLinks{"d", "c", "ch"}, true},
-		{"discord missing", PublicLinks{"", "c", "ch"}, false},
-		{"chat missing", PublicLinks{"d", "", "ch"}, false},
-		{"channel missing", PublicLinks{"d", "c", ""}, false},
+		{"all set", PublicLinks{"c", "ch"}, true},
+		{"chat missing", PublicLinks{"", "ch"}, false},
+		{"channel missing", PublicLinks{"c", ""}, false},
 		{"empty", PublicLinks{}, false},
 	}
 	for _, tt := range tests {

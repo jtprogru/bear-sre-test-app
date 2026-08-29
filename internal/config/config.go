@@ -38,7 +38,6 @@ func SearchPaths() []string {
 
 // PublicLinks — ссылки, отдаваемые ручкой /public.
 type PublicLinks struct {
-	Discord string `json:"discord"`
 	Chat    string `json:"chat"`
 	Channel string `json:"channel"`
 }
@@ -46,7 +45,7 @@ type PublicLinks struct {
 // Configured сообщает, заполнены ли ссылки. Ручка /public отдаёт 503, пока
 // конфигурация неполна, — это и есть «правильно выставленный параметр» из README.
 func (p PublicLinks) Configured() bool {
-	return p.Discord != "" && p.Chat != "" && p.Channel != ""
+	return p.Chat != "" && p.Channel != ""
 }
 
 // SecretConfig — параметры ручки /secret.
@@ -147,7 +146,6 @@ func New() (*Config, error) {
 		ChatBirthDate:    v.GetString("tg.chatBirthDate"),
 
 		Public: PublicLinks{
-			Discord: v.GetString("public.discord"),
 			Chat:    v.GetString("public.chat"),
 			Channel: v.GetString("public.channel"),
 		},

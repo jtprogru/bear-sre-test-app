@@ -38,7 +38,6 @@ type msgResponse struct {
 
 // publicResponse — тело ответа /public.
 type publicResponse struct {
-	Discord string `json:"discord"`
 	Chat    string `json:"chat"`
 	Channel string `json:"channel"`
 }

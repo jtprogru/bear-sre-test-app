@@ -24,7 +24,6 @@ func testConfig(t *testing.T) *config.Config {
 		WriteTimeout:    time.Second,
 		IdleTimeout:     time.Second,
 		Public: config.PublicLinks{
-			Discord: "https://discord.gg/example",
 			Chat:    "https://t.me/example_chat",
 			Channel: "https://t.me/example_channel",
 		},

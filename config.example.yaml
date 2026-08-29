@@ -6,31 +6,24 @@
 # Любое значение перекрывается переменной окружения с префиксом TESTAPP_:
 #   prod.port -> TESTAPP_PROD_PORT
 # Отдельно поддерживается legacy-переменная SRV_ADDR (только порт).
-
 prod:
   port: 8080
-
 server:
   shutdownTimeout: 10s
   readTimeout: 10s
   writeTimeout: 10s
   idleTimeout: 60s
-
 tg:
   chanelBirthDate: "2021-01-01"
   chatBirthDate: "2021-06-01"
-
 # Пока хотя бы одна из ссылок пуста, /public отдаёт 503, а /readyz — not ready.
 public:
-  discord: "https://discord.gg/aKZNvaXQmR"
-  chat: "https://t.me/jtprogru_chat"
-  channel: "https://t.me/jtprogru_channel"
-
+  chat: "https://t.me/+C_KaX38_qKExYmYy"
+  channel: "https://t.me/+vbR9ipgNS0U5ZWYy"
 secret:
-  chat: "https://t.me/+j7JspAH4gpxiMDVi"
+  chat: "https://t.me/+9ZRFOAj89Ow4MmFi"
   filePath: "/tmp/jtprogru.test"
   minSize: 2048
-
 # Пустой url выключает ручку /upstream (отдаёт 503).
 upstream:
   url: ""

@@ -164,7 +164,6 @@ func start(t *testing.T, opt options) *app {
 
 	public := `
 public:
-  discord: "https://discord.gg/conformance"
   chat: "https://t.me/conformance_chat"
   channel: "https://t.me/conformance_channel"
 `
