@@ -32,6 +32,10 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ matrix.go-version }}
+          # Без check-latest setup-go берёт патч-версию из кэша раннера, а она
+          # отстаёт от релизов Go. govulncheck ниже тогда падает на уязвимостях
+          # stdlib, уже закрытых в свежем патче.
+          check-latest: true
 
       - name: Build
         run: go build -v -o bin/app ./cmd/app
