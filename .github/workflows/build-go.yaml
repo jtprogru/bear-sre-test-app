@@ -48,9 +48,19 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...
 
+      # Релиз gosec v2.29.0 зависит от golang.org/x/tools v0.49.0, а тот не
+      # читает export data от Go 1.27.2: «export data version 5 is greater than
+      # maximum supported version 4». Поэтому gosec собирается во временном
+      # модуле со свежим x/tools. Когда у gosec выйдет релиз с обновлённым
+      # x/tools, шаг можно вернуть к go install ...@latest.
       - name: Static security scan (gosec)
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          mkdir "$RUNNER_TEMP/gosec-build"
+          cd "$RUNNER_TEMP/gosec-build"
+          go mod init gosec-build
+          go get github.com/securego/gosec/v2/cmd/gosec@latest golang.org/x/tools@latest
+          go install github.com/securego/gosec/v2/cmd/gosec
+          cd "$GITHUB_WORKSPACE"
           gosec ./...
 
       - name: Test with race detector
